@@ -1,4 +1,4 @@
-import { Component } from "react";
+import React, { useState, useEffect } from "react";
 import { fetchPictures } from "./services/api";
 import { Searchbar } from "./Searchbar/Searchbar";
 import { ImageGallery } from "./ImageGallery/ImageGallery";
@@ -10,97 +10,70 @@ const App = () => {
   const [photos, setPhotos] = useState([]);
   const [searchValue, setSearchValue] = useState("");
   const [page, setPage] = useState(1);
-  const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [modal, setModal] = useState("");
 
-  async componentDidUpdate(prevState, prevProps) {
-    if (
-      this.state.searchValue !== prevProps.searchValue ||
-      this.state.page !== prevProps.page
-    ) {
+  const searchValueHandler = (event) => {
+    setPhotos([]);
+    setSearchValue(event);
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
       try {
-        this.setState({ isLoading: true });
+        setIsLoading(true);
+        const fetchedPhotos = await fetchPictures(searchValue, page);
 
-        const photos = await fetchPictures(
-          this.state.searchValue,
-          this.state.page
-        );
+        const updatedPhotos = fetchedPhotos.map((photo) => ({
+          id: photo.id,
+          webformatURL: photo.webformatURL,
+          largeImageURL: photo.largeImageURL,
+          tags: photo.tags,
+        }));
 
-        photos.map((photo) => {
-          return this.setState((prevState) => ({
-            photos: [
-              ...prevState.photos,
-              {
-                id: photo.id,
-                webformatURL: photo.webformatURL,
-                largeImageURL: photo.largeImageURL,
-                tags: photo.tags,
-              },
-            ],
-          }));
-        });
+        setPhotos((prevPhotos) => [...prevPhotos, ...updatedPhotos]);
       } catch (error) {
-        this.setState({ error });
-        console.log(this.state.error);
+        console.log(error);
       } finally {
-        this.setState({ isLoading: false });
+        setIsLoading(false);
       }
+    };
+
+    if (searchValue && page) {
+      fetchData();
     }
-  }
+  }, [searchValue, page]);
 
-  searchValue = (event) => this.setState({ photos: [], searchValue: event });
-
-  showPhotos = () => {
-    const { photos } = this.state;
-    return photos;
+  const handleButtonVisibility = () => {
+    return photos.length < 12 ? "none" : "block";
   };
 
-  handleButtonVisibility = () => {
-    if (this.state.photos.length < 12) return "none";
+  const loadMore = () => {
+    setPage((prevPage) => prevPage + 1);
   };
 
-  loadMore = (event) => {
-    if (event) {
-      this.setState({ page: this.state.page + 1 });
-
-      setTimeout(() => {
-        window.scrollTo({
-          top: document.body.scrollHeight,
-          behavior: "smooth",
-        });
-      }, 500);
-    }
+  const handleModal = (imageAddress) => {
+    setModal(imageAddress);
   };
 
-  handleModal = (imageAddress) => this.setState({ modal: imageAddress });
+  const modalClose = () => {
+    setModal("");
+  };
 
-  modalClose = (event) => this.setState({ modal: event });
+  return (
+    <>
+      <Searchbar onSubmit={searchValueHandler} />
+      <ImageGallery photos={photos} imageAddress={handleModal} />
+      {isLoading && <Loader />}
+      <div
+        className="ButtonContainer"
+        style={{ display: handleButtonVisibility() }}
+      >
+        {!isLoading && <Button onClick={loadMore} />}
+      </div>
+      {modal !== "" && <Modal imageAddress={modal} onClick={modalClose} />}
+    </>
+  );
+};
 
-  passImgToModal = () => this.state.modal;
-
-  render() {
-    return (
-      <>
-        <Searchbar onSubmit={this.searchValue} />
-        <ImageGallery
-          photos={this.showPhotos()}
-          imageAddress={this.handleModal}
-        />
-        {this.state.isLoading && <Loader />}
-        <div
-          className="ButtonContainer"
-          style={{ display: this.handleButtonVisibility() }}
-        >
-          {!this.state.isLoading && <Button onClick={this.loadMore} />}
-        </div>
-        {this.state.modal !== "" && (
-          <Modal
-            imageAddress={this.passImgToModal()}
-            onClick={this.modalClose}
-          />
-        )}
-      </>
-    );
-  }
-}
+export default App;
