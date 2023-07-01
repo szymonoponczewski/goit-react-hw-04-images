@@ -6,15 +6,13 @@ import { Button } from "./Button/Button";
 import { Loader } from "./Loader/Loader";
 import { Modal } from "./Modal/Modal";
 
-export class App extends Component {
-  state = {
-    photos: [],
-    searchValue: "",
-    page: 1,
-    error: null,
-    isLoading: false,
-    modal: "",
-  };
+const App = () => {
+  const [photos, setPhotos] = useState([]);
+  const [searchValue, setSearchValue] = useState("");
+  const [page, setPage] = useState(1);
+  const [error, setError] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [modal, setModal] = useState("");
 
   async componentDidUpdate(prevState, prevProps) {
     if (
